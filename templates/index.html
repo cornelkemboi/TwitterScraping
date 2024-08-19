@@ -6,104 +6,246 @@
     <title>Scraped Tweets Data</title>
     <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css">
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.3/css/all.min.css" rel="stylesheet">
+    <link href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+    <style>
+        body {
+            background-color: #f4f6f9;
+            font-family: 'Helvetica Neue', sans-serif;
+            display: flex;
+            flex-direction: column;
+            min-height: 100vh;
+            background-image: url("/static/images/kippra_bg.jpg");
+             background: linear-gradient(to top, rgba(149, 240, 194), rgba(255, 122, 89,0));
+        }
+
+        header {
+            padding: 10px 0;
+            background-color: #343a40;
+            color: #ffffff;
+        }
+
+        .header-logo img {
+            max-height: 50px;
+        }
+
+        .header-title {
+            margin-left: 20px;
+            font-size: 22px;
+            font-weight: bold;
+        }
+
+        footer {
+            padding: 20px 0;
+            text-align: center;
+            color: #6c757d;
+            background-color: #f8f9fa;
+        }
+
+        .graph-container {
+            background-color: #ffffff; /* Solid background for the container */
+            padding: 15px;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        canvas {
+            background-color: #ffffff; /* Solid background for the canvas */
+        }
+    </style>
 </head>
 <body>
-    <div class="container mt-5">
-        <h1 class="text-center">Scraped Tweets Data</h1>
-        <!-- Section for Graphs -->
-        <div class="row mt-5">
-            <div class="col-md-6">
-                <h3>Monthly Likes, Retweets, and Comments (Last 12 Months)</h3>
-                <canvas id="monthlyAnalyticsChart"></canvas>
-            </div>
-            <div class="col-md-6">
-                <h3>Top Tweet of the Current Month</h3>
-                <canvas id="topTweetChart"></canvas>
-            </div>
-        </div>
+<header class="container-fluid d-flex align-items-center justify-content-between"
+        style="background-color:#4ea375; padding-right: 50px;">
+    <div class="header-logo d-flex align-items-center">
+        <img src="https://kippra.or.ke/wp-content/uploads/2020/12/KIPPRA-logo.png" alt="KIPPRA Logo"
+             style="max-height: 50px;">
+    </div>
+    <div class="header-title text-white">
+        KIPPRA SOCIAL MEDIA ANALYTICS
+    </div>
+    <div class="d-flex align-items-center">
+        <!-- Social Media Icons -->
+        <a href="https://twitter.com" target="_blank" class="text-white ms-3" style="font-size: 1.5rem; padding-right: 10px;">
+            <i class="fab fa-twitter" aria-hidden="true"></i>
+        </a>
+        <a href="https://facebook.com" target="_blank" class="text-white ms-3" style="font-size: 1.5rem; padding-right: 10px;">
+            <i class="fab fa-facebook" aria-hidden="true"></i>
+        </a>
+        <a href="https://linkedin.com" target="_blank" class="text-white ms-3" style="font-size: 1.5rem; padding-right: 10px;">
+            <i class="fab fa-linkedin" aria-hidden="true"></i>
+        </a>
 
-        <div class="row mt-5">
+        <!-- Logout Icon -->
+        <form action="{{ url_for('user_logout') }}" method="POST" class="mb-0 ms-4">
+            <button type="submit" class="btn btn-link text-white" style="font-size: 1.5rem;">
+                <i class="fas fa-sign-out-alt" style="color: red;"></i>
+            </button>
+        </form>
+    </div>
+</header>
+
+<div class="container mt-5 graph-container">
+    <div class="container mt-3 graph-container">
+        <div class="row">
             <div class="col-md-12">
-                <h3>Most Liked Tweet of All Time</h3>
-                <canvas id="mostLikedTweetChart"></canvas>
+                <div class="form-inline">
+                    <label for="startDate" class="mr-2">Start Date:</label>
+                    <input type="date" id="startDate" class="form-control mr-3">
+
+                    <label for="endDate" class="mr-2">End Date:</label>
+                    <input type="date" id="endDate" class="form-control mr-3">
+
+                    <button id="filterButton" class="btn btn-primary">Filter</button>
+                </div>
             </div>
         </div>
     </div>
 
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // Monthly Analytics Chart Data (populated by Flask)
-            const months = {{ months|tojson }};
-            const likes = {{ likes_per_month|tojson }};
-            const retweets = {{ retweets_per_month|tojson }};
-            const comments = {{ comments_per_month|tojson }};
+    <!-- Section for Graphs -->
+    <div class="row mt-5">
+        <div class="col-md-6 graph-container">
+            <h3>Monthly Likes, Retweets, and Comments (Last 12 Months)</h3>
+            <canvas id="monthlyAnalyticsChart"></canvas>
+        </div>
+        <div class="col-md-6 graph-container">
+            <h3>Top Tweet of the Current Month</h3>
+            <canvas id="topTweetChart"></canvas>
+        </div>
+    </div>
 
-            // Top Tweet of Current Month Data
-            const topTweetCurrentMonth = {{ top_tweet_current_month|tojson }};
+    <div class="row mt-5">
+        <div class="col-md-12 graph-container">
+            <h3>Most Liked Tweet of All Time</h3>
+            <canvas id="mostLikedTweetChart"></canvas>
+        </div>
+    </div>
+</div>
 
-            // Most Liked Tweet of All Time Data
-            const mostLikedTweetAllTime = {{ most_liked_tweet_all_time|tojson }};
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        // Monthly Analytics Chart Data (populated by Flask)
+        const months = {{ months|tojson }};
+        const likes = {{ likes_per_month|tojson }};
+        const retweets = {{ retweets_per_month|tojson }};
+        const comments = {{ comments_per_month|tojson }};
 
-            // Monthly Analytics Chart
-            const ctx1 = document.getElementById('monthlyAnalyticsChart').getContext('2d');
-            new Chart(ctx1, {
-                type: 'bar',
-                data: {
-                    labels: months,
-                    datasets: [
-                        { label: 'Likes', data: likes, backgroundColor: 'rgba(255, 99, 132, 0.6)' },
-                        { label: 'Retweets', data: retweets, backgroundColor: 'rgba(54, 162, 235, 0.6)' },
-                        { label: 'Comments', data: comments, backgroundColor: 'rgba(75, 192, 192, 0.6)' }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    scales: {
-                        y: { beginAtZero: true }
-                    }
+        // Top Tweet of Current Month Data
+        const topTweetCurrentMonth = {{ top_tweet_current_month|tojson }};
+
+        // Most Liked Tweet of All Time Data
+        const mostLikedTweetAllTime = {{ most_liked_tweet_all_time|tojson }};
+
+        // Monthly Analytics Chart
+        const ctx1 = document.getElementById('monthlyAnalyticsChart').getContext('2d');
+        new Chart(ctx1, {
+            type: 'bar',
+            data: {
+                labels: months,
+                datasets: [
+                    { label: 'Likes', data: likes, backgroundColor: 'rgba(255, 99, 132, 0.6)' },
+                    { label: 'Retweets', data: retweets, backgroundColor: 'rgba(54, 162, 235, 0.6)' },
+                    { label: 'Comments', data: comments, backgroundColor: 'rgba(75, 192, 192, 0.6)' }
+                ]
+            },
+            options: {
+                responsive: true,
+                scales: {
+                    y: { beginAtZero: true }
                 }
-            });
-
-            // Top Tweet of the Current Month Chart
-            const ctx2 = document.getElementById('topTweetChart').getContext('2d');
-            new Chart(ctx2, {
-                type: 'bar',
-                data: {
-                    labels: ['Likes', 'Retweets', 'Comments'],
-                    datasets: [{
-                        label: 'Top Tweet Metrics',
-                        data: [topTweetCurrentMonth.likes, topTweetCurrentMonth.retweets, topTweetCurrentMonth.comments],
-                        backgroundColor: ['rgba(255, 99, 132, 0.6)', 'rgba(54, 162, 235, 0.6)', 'rgba(75, 192, 192, 0.6)']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    onClick: function(e) {
-                        window.open(topTweetCurrentMonth.link, '_blank');
-                    }
-                }
-            });
-
-            // Most Liked Tweet of All Time Chart
-            const ctx3 = document.getElementById('mostLikedTweetChart').getContext('2d');
-            new Chart(ctx3, {
-                type: 'bar',
-                data: {
-                    labels: ['Likes', 'Retweets', 'Comments'],
-                    datasets: [{
-                        label: 'Most Liked Tweet Metrics',
-                        data: [mostLikedTweetAllTime.likes, mostLikedTweetAllTime.retweets, mostLikedTweetAllTime.comments],
-                        backgroundColor: ['rgba(255, 159, 64, 0.6)', 'rgba(153, 102, 255, 0.6)', 'rgba(255, 206, 86, 0.6)']
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    onClick: function(e) {
-                        window.open(mostLikedTweetAllTime.link, '_blank');
-                    }
-                }
-            });
+            }
         });
-    </script>
+
+        // Top Tweet of the Current Month Chart
+        const ctx2 = document.getElementById('topTweetChart').getContext('2d');
+        new Chart(ctx2, {
+            type: 'bar',
+            data: {
+                labels: ['Likes', 'Retweets', 'Comments'],
+                datasets: [{
+                    label: 'Top Tweet Metrics',
+                    data: [topTweetCurrentMonth.likes, topTweetCurrentMonth.retweets, topTweetCurrentMonth.comments],
+                    backgroundColor: ['rgba(255, 99, 132, 0.6)', 'rgba(54, 162, 235, 0.6)', 'rgba(75, 192, 192, 0.6)']
+                }]
+            },
+            options: {
+                responsive: true,
+                onClick: function(e) {
+                    window.open(topTweetCurrentMonth.link, '_blank');
+                }
+            }
+        });
+
+        // Most Liked Tweet of All Time Chart
+        const ctx3 = document.getElementById('mostLikedTweetChart').getContext('2d');
+        new Chart(ctx3, {
+            type: 'bar',
+            data: {
+                labels: ['Likes', 'Retweets', 'Comments'],
+                datasets: [{
+                    label: 'Most Liked Tweet Metrics',
+                    data: [mostLikedTweetAllTime.likes, mostLikedTweetAllTime.retweets, mostLikedTweetAllTime.comments],
+                    backgroundColor: ['rgba(255, 159, 64, 0.6)', 'rgba(153, 102, 255, 0.6)', 'rgba(255, 206, 86, 0.6)']
+                }]
+            },
+            options: {
+                responsive: true,
+                onClick: function(e) {
+                    window.open(mostLikedTweetAllTime.link, '_blank');
+                }
+            }
+        });
+    });
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Function to fetch and update the charts
+    function updateCharts(startDate, endDate) {
+        // Make an AJAX request to fetch filtered data
+        fetch(`/filter-data?start_date=${startDate}&end_date=${endDate}`)
+        .then(response => response.json())
+        .then(data => {
+            // Update the charts with the new data
+            monthlyAnalyticsChart.data.labels = data.months;
+            monthlyAnalyticsChart.data.datasets[0].data = data.likes;
+            monthlyAnalyticsChart.data.datasets[1].data = data.retweets;
+            monthlyAnalyticsChart.data.datasets[2].data = data.comments;
+            monthlyAnalyticsChart.update();
+
+            topTweetChart.data.datasets[0].data = [data.topTweetCurrentMonth.likes, data.topTweetCurrentMonth.retweets, data.topTweetCurrentMonth.comments];
+            topTweetChart.update();
+
+            mostLikedTweetChart.data.datasets[0].data = [data.mostLikedTweetAllTime.likes, data.mostLikedTweetAllTime.retweets, data.mostLikedTweetAllTime.comments];
+            mostLikedTweetChart.update();
+        })
+        .catch(error => console.error('Error:', error));
+    }
+
+    // Add event listener to the filter button
+    document.getElementById('filterButton').addEventListener('click', function() {
+        const startDate = document.getElementById('startDate').value;
+        const endDate = document.getElementById('endDate').value;
+        if (startDate && endDate) {
+            updateCharts(startDate, endDate);
+        } else {
+            alert('Please select both start and end dates.');
+        }
+    });
+
+    // Initial chart rendering with default data (past 12 months)
+    const monthlyAnalyticsChart = new Chart(document.getElementById('monthlyAnalyticsChart').getContext('2d'), {
+        // Initial chart configuration...
+    });
+    const topTweetChart = new Chart(document.getElementById('topTweetChart').getContext('2d'), {
+        // Initial chart configuration...
+    });
+    const mostLikedTweetChart = new Chart(document.getElementById('mostLikedTweetChart').getContext('2d'), {
+        // Initial chart configuration...
+    });
+});
+</script>
+
 </body>
 </html>
